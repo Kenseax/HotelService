@@ -1,7 +1,8 @@
 package controller
 
 import (
-	"HotelService/application/usecase"
+	"HotelService/application/dto"
+	"HotelService/application/service"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -9,32 +10,12 @@ import (
 )
 
 type HotelierController struct {
-	createHotelUseCase        *usecase.CreateHotelUseCase
-	updateHotelUseCase        *usecase.UpdateHotelUseCase
-	getHotelUseCase           *usecase.GetHotelUseCase
-	addRoomUseCase            *usecase.AddRoomToHotelUseCase
-	updateRoomUseCase         *usecase.UpdateRoomUseCase
-	deleteRoomUseCase         *usecase.DeleteRoomUseCase
-	updateAvailabilityUseCase *usecase.UpdateRoomAvailabilityUseCase
+	hotelService service.HotelService
 }
 
-func NewHotelierController(
-	createHotelUC *usecase.CreateHotelUseCase,
-	updateHotelUC *usecase.UpdateHotelUseCase,
-	getHotelUC *usecase.GetHotelUseCase,
-	addRoomUC *usecase.AddRoomToHotelUseCase,
-	updateRoomUC *usecase.UpdateRoomUseCase,
-	deleteRoomUC *usecase.DeleteRoomUseCase,
-	updateAvailabilityUC *usecase.UpdateRoomAvailabilityUseCase,
-) *HotelierController {
+func NewHotelierController(hotelService service.HotelService) *HotelierController {
 	return &HotelierController{
-		createHotelUseCase:        createHotelUC,
-		updateHotelUseCase:        updateHotelUC,
-		getHotelUseCase:           getHotelUC,
-		addRoomUseCase:            addRoomUC,
-		updateRoomUseCase:         updateRoomUC,
-		deleteRoomUseCase:         deleteRoomUC,
-		updateAvailabilityUseCase: updateAvailabilityUC,
+		hotelService: hotelService,
 	}
 }
 
@@ -64,9 +45,9 @@ func (c *HotelierController) CreateHotel(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	rooms := make([]usecase.RoomInput, len(req.Rooms))
+	rooms := make([]dto.RoomInput, len(req.Rooms))
 	for i, room := range req.Rooms {
-		rooms[i] = usecase.RoomInput{
+		rooms[i] = dto.RoomInput{
 			Number:    room.Number,
 			Type:      room.Type,
 			Price:     room.Price,
@@ -74,7 +55,7 @@ func (c *HotelierController) CreateHotel(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	hotel, err := c.createHotelUseCase.Execute(r.Context(), req.Name, req.Address, rooms)
+	hotel, err := c.hotelService.CreateHotel(r.Context(), req.Name, req.Address, rooms)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -110,7 +91,7 @@ func (c *HotelierController) UpdateHotel(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	hotel, err := c.updateHotelUseCase.Execute(r.Context(), id, req.Name, req.Address)
+	hotel, err := c.hotelService.UpdateHotel(r.Context(), id, req.Name, req.Address)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -134,7 +115,7 @@ func (c *HotelierController) GetHotel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hotel, err := c.getHotelUseCase.Execute(r.Context(), id)
+	hotel, err := c.hotelService.GetHotel(r.Context(), id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -177,7 +158,7 @@ func (c *HotelierController) AddRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	room, err := c.addRoomUseCase.Execute(r.Context(), hotelID, req.Number, req.Type, req.Price, req.Available)
+	room, err := c.hotelService.AddRoomToHotel(r.Context(), hotelID, req.Number, req.Type, req.Price, req.Available)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -215,7 +196,7 @@ func (c *HotelierController) UpdateRoom(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	room, err := c.updateRoomUseCase.Execute(r.Context(), id, req.Number, req.Type, req.Price, req.Available)
+	room, err := c.hotelService.UpdateRoom(r.Context(), id, req.Number, req.Type, req.Price, req.Available)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -239,7 +220,7 @@ func (c *HotelierController) DeleteRoom(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := c.deleteRoomUseCase.Execute(r.Context(), id); err != nil {
+	if err := c.hotelService.DeleteRoom(r.Context(), id); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -277,7 +258,7 @@ func (c *HotelierController) UpdateRoomAvailability(w http.ResponseWriter, r *ht
 		return
 	}
 
-	if err := c.updateAvailabilityUseCase.Execute(r.Context(), roomID, req.Available); err != nil {
+	if err := c.hotelService.UpdateRoomAvailability(r.Context(), roomID, req.Available); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

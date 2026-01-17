@@ -1,7 +1,8 @@
 package main
 
 import (
-	"HotelService/application/usecase"
+	"HotelService/application/dto"
+	"HotelService/application/service"
 	"HotelService/infrastructure/db"
 	"context"
 	"fmt"
@@ -27,17 +28,10 @@ func main() {
 
 	fmt.Println("✓ Repositories initialized")
 
-	// 3. Initialize use cases
-	createHotelUC := usecase.NewCreateHotelUseCase(hotelRepo, roomRepo)
-	updateHotelUC := usecase.NewUpdateHotelUseCase(hotelRepo)
-	getHotelUC := usecase.NewGetHotelUseCase(hotelRepo)
-	listHotelsUC := usecase.NewListHotelsUseCase(hotelRepo)
-	addRoomUC := usecase.NewAddRoomToHotelUseCase(roomRepo)
-	updateRoomUC := usecase.NewUpdateRoomUseCase(roomRepo)
-	updateRoomAvailabilityUC := usecase.NewUpdateRoomAvailabilityUseCase(roomRepo)
-	findAvailableRoomsUC := usecase.NewFindAvailableRoomsUseCase(roomRepo)
+	// 3. Initialize hotel service
+	hotelService := service.NewHotelService(hotelRepo, roomRepo)
 
-	fmt.Println("✓ Use cases initialized")
+	fmt.Println("✓ Hotel service initialized")
 
 	// 4. Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -45,12 +39,12 @@ func main() {
 
 	// 5. Example: Create a new hotel with rooms
 	fmt.Println("\n--- Creating a new hotel ---")
-	rooms := []usecase.RoomInput{
+	rooms := []dto.RoomInput{
 		{Number: "301", Type: "Suite", Price: 300.00, Available: true},
 		{Number: "302", Type: "Double", Price: 200.00, Available: true},
 		{Number: "303", Type: "Single", Price: 150.00, Available: false},
 	}
-	hotel, err := createHotelUC.Execute(ctx, "Luxury Hotel", "789 Park Ave, Seattle, WA", rooms)
+	hotel, err := hotelService.CreateHotel(ctx, "Luxury Hotel", "789 Park Ave, Seattle, WA", rooms)
 	if err != nil {
 		log.Printf("Error creating hotel: %v", err)
 	} else {
@@ -64,7 +58,7 @@ func main() {
 	// 6. Example: Get hotel by ID
 	fmt.Println("\n--- Getting hotel by ID ---")
 	if hotel != nil {
-		fetchedHotel, err := getHotelUC.Execute(ctx, hotel.ID)
+		fetchedHotel, err := hotelService.GetHotel(ctx, hotel.ID)
 		if err != nil {
 			log.Printf("Error getting hotel: %v", err)
 		} else {
@@ -79,7 +73,7 @@ func main() {
 
 	// 7. Example: List all hotels
 	fmt.Println("\n--- Listing all hotels ---")
-	hotels, err := listHotelsUC.Execute(ctx)
+	hotels, err := hotelService.ListHotels(ctx)
 	if err != nil {
 		log.Printf("Error listing hotels: %v", err)
 	} else {
@@ -91,7 +85,7 @@ func main() {
 
 	// 8. Example: Find available rooms
 	fmt.Println("\n--- Finding available rooms ---")
-	availableRooms, err := findAvailableRoomsUC.Execute(ctx)
+	availableRooms, err := hotelService.FindAvailableRooms(ctx)
 	if err != nil {
 		log.Printf("Error finding available rooms: %v", err)
 	} else {
@@ -105,7 +99,7 @@ func main() {
 	fmt.Println("\n--- Updating room availability ---")
 	if len(availableRooms) > 0 {
 		roomID := availableRooms[0].ID
-		err = updateRoomAvailabilityUC.Execute(ctx, roomID, false)
+		err = hotelService.UpdateRoomAvailability(ctx, roomID, false)
 		if err != nil {
 			log.Printf("Error updating room availability: %v", err)
 		} else {
@@ -113,7 +107,7 @@ func main() {
 		}
 
 		// Mark it back as available
-		err = updateRoomAvailabilityUC.Execute(ctx, roomID, true)
+		err = hotelService.UpdateRoomAvailability(ctx, roomID, true)
 		if err != nil {
 			log.Printf("Error updating room availability: %v", err)
 		} else {
@@ -124,7 +118,7 @@ func main() {
 	// 10. Example: Update hotel information (Hotelier operation)
 	fmt.Println("\n--- Updating hotel information ---")
 	if hotel != nil {
-		updatedHotel, err := updateHotelUC.Execute(ctx, hotel.ID, "Updated Luxury Hotel", "999 Updated Ave, Seattle, WA")
+		updatedHotel, err := hotelService.UpdateHotel(ctx, hotel.ID, "Updated Luxury Hotel", "999 Updated Ave, Seattle, WA")
 		if err != nil {
 			log.Printf("Error updating hotel: %v", err)
 		} else {
@@ -136,7 +130,7 @@ func main() {
 	// 11. Example: Add a new room to hotel (Hotelier operation)
 	fmt.Println("\n--- Adding a new room to hotel ---")
 	if hotel != nil {
-		newRoom, err := addRoomUC.Execute(ctx, hotel.ID, "304", "Deluxe", 250.00, true)
+		newRoom, err := hotelService.AddRoomToHotel(ctx, hotel.ID, "304", "Deluxe", 250.00, true)
 		if err != nil {
 			log.Printf("Error adding room: %v", err)
 		} else {
@@ -149,10 +143,10 @@ func main() {
 	fmt.Println("\n--- Updating room information ---")
 	if hotel != nil {
 		// Get the hotel again to see the new room
-		updatedHotel, err := getHotelUC.Execute(ctx, hotel.ID)
+		updatedHotel, err := hotelService.GetHotel(ctx, hotel.ID)
 		if err == nil && len(updatedHotel.Rooms) > 0 {
 			roomToUpdate := updatedHotel.Rooms[len(updatedHotel.Rooms)-1] // Last room (newly added)
-			updatedRoom, err := updateRoomUC.Execute(ctx, roomToUpdate.ID, "304", "Premium Suite", 350.00, true)
+			updatedRoom, err := hotelService.UpdateRoom(ctx, roomToUpdate.ID, "304", "Premium Suite", 350.00, true)
 			if err != nil {
 				log.Printf("Error updating room: %v", err)
 			} else {

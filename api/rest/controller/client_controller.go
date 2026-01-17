@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"HotelService/application/usecase"
+	"HotelService/application/service"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -9,20 +9,12 @@ import (
 )
 
 type ClientController struct {
-	listHotelsUseCase         *usecase.ListHotelsUseCase
-	getHotelDetailsUseCase    *usecase.GetHotelDetailsUseCase
-	findAvailableRoomsUseCase *usecase.FindAvailableRoomsUseCase
+	hotelService service.HotelService
 }
 
-func NewClientController(
-	listHotelsUC *usecase.ListHotelsUseCase,
-	getHotelDetailsUC *usecase.GetHotelDetailsUseCase,
-	findAvailableRoomsUC *usecase.FindAvailableRoomsUseCase,
-) *ClientController {
+func NewClientController(hotelService service.HotelService) *ClientController {
 	return &ClientController{
-		listHotelsUseCase:         listHotelsUC,
-		getHotelDetailsUseCase:    getHotelDetailsUC,
-		findAvailableRoomsUseCase: findAvailableRoomsUC,
+		hotelService: hotelService,
 	}
 }
 
@@ -33,7 +25,7 @@ func (c *ClientController) ListHotels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hotels, err := c.listHotelsUseCase.Execute(r.Context())
+	hotels, err := c.hotelService.ListHotels(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -57,7 +49,7 @@ func (c *ClientController) GetHotelDetails(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	hotel, err := c.getHotelDetailsUseCase.Execute(r.Context(), id)
+	hotel, err := c.hotelService.GetHotel(r.Context(), id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -74,7 +66,7 @@ func (c *ClientController) FindAvailableRooms(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	rooms, err := c.findAvailableRoomsUseCase.Execute(r.Context())
+	rooms, err := c.hotelService.FindAvailableRooms(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
